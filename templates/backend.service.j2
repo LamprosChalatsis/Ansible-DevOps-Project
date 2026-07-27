@@ -1,0 +1,14 @@
+[Unit]
+Description=Medical Appointment Backend
+After=network.target postgresql.service
+
+[Service]
+ExecStart=/usr/bin/java -jar {{ app_dir }}/{{ jar_name }}
+Restart=always
+User=root
+Environment=SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/{{ db.name }}
+Environment=SPRING_DATASOURCE_USERNAME={{ db.user }}
+Environment=SPRING_DATASOURCE_PASSWORD={{ db.password }}
+
+[Install]
+WantedBy=multi-user.target

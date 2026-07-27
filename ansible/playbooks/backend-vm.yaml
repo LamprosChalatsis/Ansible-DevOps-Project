@@ -1,0 +1,43 @@
+---
+# Εγκαθιστά το backend ΑΠΕΥΘΕΙΑΣ σε VM, χωρίς containers (plain-VM environment).
+# Περιμένει ότι το jar έχει ήδη γίνει build τοπικά (mvn package) πριν το τρέξιμο.
+#
+# Χρήση:
+#   ansible-playbook playbooks/backend-vm.yaml -e jar_local_path=/path/to/appointment-service-0.0.1-SNAPSHOT.jar
+
+- hosts: appservers
+  become: yes
+
+  vars:
+    app_dir: /opt/medical-appointment-service/backend
+    jar_name: appointment-service-0.0.1-SNAPSHOT.jar
+
+  tasks:
+    - name: Install Java 21
+      apt:
+        name: openjdk-21-jre-headless
+        state: present
+        update_cache: yes
+
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy the built jar to the server
+      copy:
+        src: "{{ jar_local_path }}"
+        dest: "{{ app_dir }}/{{ jar_name }}"
+
+    - name: Create systemd service for the backend
+      template:
+        src: templates/backend.service.j2
+        dest: /etc/systemd/system/medical-backend.service
+
+    - name: Reload systemd and (re)start the backend service
+      systemd:
+        daemon_reload: yes
+        name: medical-backend
+        state: restarted
+        enabled: yes

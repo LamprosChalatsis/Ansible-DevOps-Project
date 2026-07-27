@@ -1,0 +1,53 @@
+---
+# Εγκαθιστά το frontend (production build) απευθείας σε VM με nginx,
+# χωρίς containers (plain-VM environment).
+# Περιμένει ότι έχει ήδη γίνει `npm run build` τοπικά πριν το τρέξιμο.
+#
+# Χρήση:
+#   ansible-playbook playbooks/frontend-vm.yaml -e build_local_path=/path/to/frontend/build
+
+- hosts: appservers
+  become: yes
+
+  vars:
+    remote_build_dir: /var/www/medical-frontend
+
+  tasks:
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Create remote build directory
+      file:
+        path: "{{ remote_build_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy the production React build to the server
+      copy:
+        src: "{{ build_local_path }}/"
+        dest: "{{ remote_build_dir }}/"
+
+    - name: Configure nginx site for the frontend
+      template:
+        src: templates/nginx-frontend.conf.j2
+        dest: /etc/nginx/sites-available/medical-frontend
+
+    - name: Enable the nginx site
+      file:
+        src: /etc/nginx/sites-available/medical-frontend
+        dest: /etc/nginx/sites-enabled/medical-frontend
+        state: link
+        force: yes
+
+    - name: Remove the default nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
