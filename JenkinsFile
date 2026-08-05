@@ -5,7 +5,9 @@ pipeline {
         stage('Deploy via Ansible') {
             steps {
                 dir('ansible') {
-                    sh 'ansible-playbook -i hosts.yaml playbooks/deploy.yaml'
+                    sshagent(credentials: ['vm-deploy-key']) {
+                        sh 'ansible-playbook -i hosts.yaml playbooks/deploy.yaml'
+                    }
                 }
             }
         }
