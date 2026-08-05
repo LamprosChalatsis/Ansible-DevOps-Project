@@ -1,7 +1,18 @@
 ---
+  # VM #1: appserver + Jenkins (Docker environment, CI/CD)
+  # ΣΗΜΕΙΩΣΗ: δεν ορίζουμε πια ansible_ssh_private_key_file εδώ.
+  # Η ταυτότητα (identity) δίνεται από έναν SSH agent -- είτε το δικό σου
+  # (όταν τρέχεις χειροκίνητα από WSL), είτε αυτόν που φτιάχνει το
+  # Jenkins credentials plugin (sshagent step) όταν τρέχει το Jenkins.
+  appservers:
+    hosts:
+      appserver:
+        ansible_host: 34.38.63.206
+        ansible_user: it2022111
+ 
+  # Ίδιο VM με το appservers -- χρησιμοποιείται μόνο όταν τρέχεις το
+  # playbooks/postgres.yaml (bare-metal Postgres, plain-VM environment).
   dbservers:
     hosts:
-      dbserver:
-        ansible_host: 132.164.249.67
-        ansible_user: azureuser
-        ansible_ssh_private_key_file: ~/.ssh/devops-db
+      appserver:
+ 
