@@ -1,0 +1,41 @@
+---
+# Εγκαθιστά Microk8s στο VM και ενεργοποιεί τα addons που χρειαζόμαστε
+# (dns, storage για PersistentVolumes, ingress για routing).
+#
+# Χρήση:
+#   ansible-playbook playbooks/microk8s.yaml
+
+- hosts: appservers
+  become: yes
+
+  tasks:
+    - name: Install snapd
+      apt:
+        name: snapd
+        state: present
+        update_cache: yes
+
+    - name: Install Microk8s via snap (classic confinement)
+      command: snap install microk8s --classic
+      args:
+        creates: /snap/bin/microk8s
+
+    - name: Add remote user to the microk8s group
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: microk8s
+        append: yes
+
+    - name: Wait for Microk8s to be ready
+      command: microk8s status --wait-ready
+      changed_when: false
+
+    - name: Enable required addons (dns, storage, ingress)
+      command: microk8s enable dns storage ingress
+      changed_when: false
+
+    - name: Create kubectl alias (optional, convenience)
+      lineinfile:
+        path: /etc/profile.d/microk8s.sh
+        line: "alias kubectl='microk8s kubectl'"
+        create: yes
