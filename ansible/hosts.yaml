@@ -17,8 +17,9 @@
       appserver:
  
   # VM #2: αποκλειστικά για Kubernetes/Microk8s
-  # k8sservers:
-  #   hosts:
-  #     k8snode:
-  #       ansible_host: REPLACE_WITH_VM2_PUBLIC_IP
-  #       ansible_user: it2022111
+  k8sservers:
+    hosts:
+      k8snode:
+        ansible_host: 35.241.158.228
+        ansible_user: it2022111
+        ansible_ssh_private_key_file: ~/.ssh/k8s-vm-key
