@@ -11,6 +11,13 @@ pipeline {
                 }
             }
         }
+        stage('Deploy K8s') {
+            steps{
+                dir('ansible') {
+                    sh 'ansible-playbook -i hosts.yaml playbooks/k8s-deploy.yaml'
+                }
+            }
+        }
     }
 
     post {
