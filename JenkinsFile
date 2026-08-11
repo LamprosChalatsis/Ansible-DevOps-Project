@@ -22,8 +22,7 @@ pipeline {
             }
         }
     }
-    }
-
+    
     post {
         success {
             echo 'Deployment via Ansible completed.'
@@ -33,3 +32,4 @@ pipeline {
         }
     }
 }
+

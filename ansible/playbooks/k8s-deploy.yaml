@@ -1,0 +1,40 @@
+---
+# Αντιγράφει τα Kubernetes manifests (από τον φάκελο ../k8s αυτού του repo)
+# στο VM και τα κάνει apply μέσω microk8s kubectl.
+#
+# ΣΗΜΕΙΩΣΗ: αυτό το playbook περιμένει να υπάρχουν ήδη τα .yaml manifests
+# (Deployment/Service/Ingress κλπ) μέσα στον φάκελο k8s/ του repo.
+# Αν ο φάκελος είναι ακόμα άδειος, γέμισέ τον πρώτα πριν τρέξεις αυτό.
+#
+# Χρήση:
+#   ansible-playbook playbooks/k8s-deploy.yaml
+
+- hosts: k8sservers
+  become: yes
+
+  vars:
+    remote_manifests_dir: "/home/{{ ansible_user_id }}/k8s-manifests"
+
+  tasks:
+    - name: Ensure remote manifests directory exists
+      file:
+        path: "{{ remote_manifests_dir }}"
+        state: directory
+
+    - name: Copy Kubernetes manifests to the server
+      copy:
+        src: "../k8s/"
+        dest: "{{ remote_manifests_dir }}/"
+
+    - name: Apply all Kubernetes manifests
+      command: "microk8s kubectl apply -f {{ remote_manifests_dir }}/"
+      changed_when: true
+
+    - name: Show current pod status
+      command: microk8s kubectl get pods -o wide
+      changed_when: false
+      register: pod_status
+
+    - name: Print pod status
+      debug:
+        msg: "{{ pod_status.stdout_lines }}"
