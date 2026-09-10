@@ -1,0 +1,114 @@
+---
+# Εγκαθιστά Jenkins server ΚΑΙ όλα τα prerequisites που χρειάζονται
+# τα Jenkinsfiles (Docker, Maven, Node.js 20, Ansible, Git) στο ίδιο VM.
+#
+# ΣΗΜΕΙΩΣΗ: τρέξε πρώτα το playbooks/docker.yaml σε αυτό το host, ώστε να
+# υπάρχει ήδη η ομάδα "docker" πριν προσπαθήσουμε να προσθέσουμε σε αυτήν
+# τον χρήστη jenkins.
+#
+# Χρήση:
+#   ansible-playbook -i hosts.yaml playbooks/jenkins.yaml
+
+- hosts: appservers
+  become: yes
+
+  tasks:
+
+    # ---------- Jenkins ----------
+
+    - name: Install Java (απαραίτητο για Jenkins)
+      apt:
+        name: openjdk-21-jre-headless
+        state: present
+        update_cache: yes
+
+    - name: Add Jenkins GPG key (2026 signing key)
+      get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+        dest: /usr/share/keyrings/jenkins-keyring.asc
+        mode: '0644'
+        force: yes
+
+    - name: Add Jenkins apt repository
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+        update_cache: yes
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+        update_cache: yes
+
+    # ---------- Build tools που χρειάζονται τα Jenkinsfiles ----------
+
+    - name: Install Maven, Git, Ansible
+      apt:
+        name:
+          - maven
+          - git
+          - ansible
+        state: present
+        update_cache: yes
+
+    # Το nodejs του default Ubuntu apt repo είναι πολύ παλιό (π.χ. v12) --
+    # χρησιμοποιούμε το επίσημο NodeSource repo για σύγχρονο Node (v20 LTS).
+    - name: Create /etc/apt/keyrings directory (αν δεν υπάρχει ήδη)
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Add NodeSource GPG key
+      get_url:
+        url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+        dest: /etc/apt/keyrings/nodesource.asc
+        mode: '0644'
+        force: yes
+
+    - name: Add NodeSource apt repository (Node 20.x)
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_20.x nodistro main"
+        state: present
+        update_cache: yes
+
+    - name: Install Node.js (includes npm)
+      apt:
+        name: nodejs
+        state: present
+        update_cache: yes
+
+    # ---------- Docker permissions για τον jenkins user ----------
+    # Χρειάζεται ήδη να υπάρχει η ομάδα "docker" (δηλ. να έχει τρέξει
+    # πρώτα το playbooks/docker.yaml σε αυτό το host).
+
+    - name: Add jenkins user to the docker group
+      user:
+        name: jenkins
+        groups: docker
+        append: yes
+      notify: restart jenkins
+
+    - name: Start and enable the Jenkins service
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Show initial admin password (πρώτο login)
+      command: cat /var/lib/jenkins/secrets/initialAdminPassword
+      changed_when: false
+      register: jenkins_password
+      ignore_errors: yes
+
+    - name: Print initial admin password
+      debug:
+        msg: "{{ jenkins_password.stdout }}"
+      when: jenkins_password.stdout is defined
+
+  handlers:
+    - name: restart jenkins
+      service:
+        name: jenkins
+        state: restarted
