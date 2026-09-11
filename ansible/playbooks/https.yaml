@@ -1,0 +1,64 @@
+---
+# Εγκαθιστά Caddy στο VM1 -- κάνει reverse proxy το FQDN σου προς το
+# frontend, με αυτόματο HTTPS (Let's Encrypt) χωρίς καμία χειροκίνητη
+# ρύθμιση certificate.
+#
+# Χρήση:
+#   ansible-playbook -i hosts.yaml playbooks/https.yaml -e fqdn=medical-appointment-lambros.duckdns.org
+
+- hosts: appservers
+  become: yes
+
+  vars:
+    caddyfile_path: /etc/caddy/Caddyfile
+
+  tasks:
+    - name: Fail fast αν δεν δόθηκε το fqdn
+      fail:
+        msg: "Δώσε το domain σου: -e fqdn=το-domain-σου.duckdns.org"
+      when: fqdn is not defined
+
+    - name: Install prerequisite packages
+      apt:
+        name:
+          - debian-keyring
+          - debian-archive-keyring
+          - apt-transport-https
+          - curl
+          - gnupg
+        state: present
+        update_cache: yes
+
+    - name: Add Caddy GPG key
+      get_url:
+        url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
+        dest: /usr/share/keyrings/caddy-stable-archive-keyring.asc
+        mode: '0644'
+        force: yes
+
+    - name: Add Caddy apt repository
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.asc] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
+        state: present
+        filename: caddy-stable
+        update_cache: yes
+
+    - name: Install Caddy
+      apt:
+        name: caddy
+        state: present
+        update_cache: yes
+
+    - name: Write the Caddyfile
+      copy:
+        dest: "{{ caddyfile_path }}"
+        content: |
+          {{ fqdn }} {
+              reverse_proxy localhost:3000
+          }
+
+    - name: Restart Caddy to apply the new config
+      service:
+        name: caddy
+        state: restarted
+        enabled: yes
