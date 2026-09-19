@@ -1,4 +1,14 @@
-*.retry
+# IDE
 .vscode/
+.idea/
+
+# Ansible
+*.retry
+
+# Python
 *.pyc
 __pycache__/
+
+# OS
+.DS_Store
+Thumbs.db
