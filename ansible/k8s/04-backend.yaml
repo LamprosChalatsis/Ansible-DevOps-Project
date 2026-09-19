@@ -31,6 +31,8 @@ spec:
                 secretKeyRef:
                   name: db-credentials
                   key: POSTGRES_PASSWORD
+            - name: JWT_SECRET
+              value: "43006d10d6fcc60abcd8f6e57955aadd75179e0b24c439568c4b4eae4bfa35dd"
           envFrom:
             - configMapRef:
                 name: backend-config
