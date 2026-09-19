@@ -19,6 +19,7 @@ services:
       SPRING_MAIL_HOST: mailhog
       SPRING_MAIL_PORT: 1025
       CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://{{ ansible_host }}:3000,https://medical-appointment-lampros.duckdns.org"
+      JWT_SECRET: "43006d10d6fcc60abcd8f6e57955aadd75179e0b24c439568c4b4eae4bfa35dd"
     depends_on:
       - db
       - mailhog
